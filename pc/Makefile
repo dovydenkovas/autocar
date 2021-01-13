@@ -1,4 +1,4 @@
-all: 00_read_video 01_find_line 02_stop_sign
+all: 00_read_video 01_find_line 02_find_line_func 03_select_sign 04_rec_signs
 
 
 00_read_video: 00_read_video.cpp
@@ -13,5 +13,9 @@ all: 00_read_video 01_find_line 02_stop_sign
 03_select_sign: 03_select_sign.cpp
 	g++ 03_select_sign.cpp -o 03_select_sign `pkg-config --cflags --libs opencv4`
 
+04_rec_signs: 04_rec_signs.cpp
+	g++ 04_rec_signs.cpp -o 04_rec_signs `pkg-config --cflags --libs opencv4`
+
 clean:
-	rm -f *.o 00_read_video 01_find_line 02_find_line_func 03_select_sign
+	rm -f *.o
+	rm -f 00_read_video 01_find_line 02_find_line_func 03_select_sign 04_rec_signs

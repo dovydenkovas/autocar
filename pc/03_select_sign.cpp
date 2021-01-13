@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
 
     while(true) {
         cap.read(frame);
+        if(waitKey(50) >= 0) break;
         if(frame.empty()) continue;
 
         // Обозначаем область интереса синим прямоугольником
@@ -56,7 +57,7 @@ int main(int argc, char *argv[]) {
         // Аппроксимированный контур
         vector<Point> approx;
         // Находим все контуры на изображении
-        Canny(result, result, 50, 150, 3);
+        Canny(result, result, 50, 150, 5);
         findContours(result, contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
         // Проходимся по всем найденным контурам в цикле
@@ -64,7 +65,7 @@ int main(int argc, char *argv[]) {
             // Аппроксимируем контур до более простой фигуры
             // "contours" - входной контур для аппроксимации
             // "approx" - выходной аппроксимированный контур
-            approxPolyDP(Mat(contours[i]), approx, 5, true);
+            approxPolyDP(Mat(contours[i]), approx, 3, true);
 
             // Вычисляем площадь контура с помощью функции "contourArea"
             // "fabs" возвращает положительное значение
@@ -89,13 +90,12 @@ int main(int argc, char *argv[]) {
 
             // Так как знак квадратный, то и стороны найденного контура должны
             // быть равны примерно равны. Если это не так - пропускаем контур.
-            if(ratio < 0.7 || ratio > 1.3) continue;
+            if(ratio < 0.8 || ratio > 1.2) continue;
 
             rectangle(frame(area_sign), boundingarea, Scalar(0, 0, 255), 2);
         }
 
         imshow("frame", frame);
-        if(waitKey(50) >= 0) break;
     }
     return 0;
 }
