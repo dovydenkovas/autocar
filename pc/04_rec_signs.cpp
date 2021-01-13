@@ -8,62 +8,6 @@
 using namespace cv;
 using namespace std;
 
-struct SimpleHist {
-    int red,
-        yellow,
-        blue,
-        black;
-
-    SimpleHist(int red_ = 0, int yellow_ = 0, int blue_ = 0, int black_ = 0):
-        red(red_),
-        yellow(yellow_),
-        blue(blue_),
-        black(black_)
-    {
-    }
-};
-
-
-// Функция вычисляет процентное соотношение красной, жёлтой, синий, черной
-// компоненты на изображении "frame"
-SimpleHist count_colors(Mat& frame) {
-    SimpleHist colors;
-    // Считаем количество пикселей красного, жёлтого, синего, чёрного цвета
-	for(size_t y = 0; y < frame.rows; y++) {
-		for(size_t x = 0; x < frame.cols; x++) {
-            Vec3b pixel = frame.at<Vec3b>(Point(x, y));
-            // pixel[0] - синяя компонента
-            // pixel[1] - зелёная компонента
-            // pixel[2] - красная компонента
-
-            // Для определения чёрного цвета
-            /*if ((pixel[0] <= 100 && abs(pixel[0] - pixel[1]) < 25 &&
-                 abs(pixel[0] - pixel[2]) < 25 &&
-                 abs(pixel[2] - pixel[1]) < 25)) colors.black++;*/
-            if (pixel[0] <= 25 and pixel[1] <= 25 and pixel[1] <= 25)
-                colors.black++;
-			// Для определения красного цвета
-            if (pixel[2] > (pixel[1] + pixel[0]) * 0.7)
-                colors.red++;
-			// Для определения синего цвета
-            if ((pixel[0] - max(pixel[1], pixel[2])) > 10)
-                colors.blue++;
-			// Для определения жёлтого цвета
-            if (pixel[1] - pixel[0] > 20 && pixel[2] - pixel[0] > 20)
-                colors.yellow++;
-		}
-	}
-
-    // Узнаём процентное соотношение цветов
-	float count = frame.cols * frame.rows;
-    colors.red = (float)colors.red / count * 100;
-	colors.yellow = (float)colors.yellow / count * 100;
-	colors.blue = (float)colors.blue / count * 100;
-	colors.black = (float)colors.black / count * 100;
-	return colors;
-}
-
-
 
 int main(int argc, char *argv[]) {
     // Считывание имени входного файла из аргумента командной строки.
@@ -71,7 +15,7 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         filename = argv[1];
     } else {
-        filename = "videos/stop_sign.avi";
+        filename = "videos/all_input.avi";
     }
 
     // Область в которой ищем дорожный знак.
@@ -94,27 +38,30 @@ int main(int argc, char *argv[]) {
 
     while(true) {
         cap.read(frame);
-        if(waitKey(100) >= 0) break;
+        if(waitKey(33) >= 0) break;
         if(frame.empty()) continue;
 
         // Обозначаем область интереса синим прямоугольником
         rectangle(frame, area_sign, Scalar(255, 0, 0), 2);
 
-        // ***** Распознавание дорожных знаков на изображении *****
-        SimpleHist colors;
+        /*
+         * Обнаружение контуров дорожных знаков
+         */
+
         // Создаём копию кадра "frame"
-        Mat result, copy_frame;
-        frame(area_sign).copyTo(result);
-        frame(area_sign).copyTo(copy_frame);
+        Mat gray = frame(area_sign); // Необходим для обнаружения контуров.
+        Mat area_frame = frame(area_sign); // Необходим для распознавания знаков среди контуров.
+        //.copyTo(gray);
+        //.copyTo(area_frame);
         // Переводим кадр из BGR в оттенки серого
-        cvtColor(result, result, COLOR_BGR2GRAY);
+        cvtColor(gray, gray, COLOR_BGR2GRAY);
         // Массив с найденными контурами на изображении
         vector<vector<Point>> contours;
-        // Аппроксимированный контур
+        // Аппроксимированный (упрощенный) контур
         vector<Point> approx;
         // Находим все контуры на изображении
-        Canny(result, result, 50, 150, 3);
-        findContours(result, contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
+        Canny(gray, gray, 70, 210, 3);
+        findContours(gray, contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
         // Проходимся по всем найденным контурам в цикле
 		for (size_t i = 0; i < contours.size(); i++) {
@@ -124,7 +71,7 @@ int main(int argc, char *argv[]) {
             // Вычисляем площадь контура с помощью функции "contourArea"
             double area = fabs(contourArea((Mat)contours[i]));
             // Игнорируем слишком маленькие контуры
-            if (area < 400)
+            if (area < 480)
                 continue;
 
             // Узнаём, в каком месте кадра находится контур с помощью функции "boundingRect"
@@ -139,22 +86,55 @@ int main(int argc, char *argv[]) {
 
             // Подсчет количества цвета
             // Вырезаем из всего кадра область boundingarea
-            Mat rr = copy_frame(boundingarea);
+            Mat rr = area_frame(boundingarea);
 
             // Подсчитываем процентное соотношение красного, жёлтого, синего и чёрных цветов на вырезанной области
             // "rr" - область для подсчёта
-            // "colors" - структура с соотношением цветов на изображении
-            colors = count_colors(rr);
+            int blue = 0;
+            int black = 0;
+            int red = 0;
+            // Считаем количество пикселей красного, жёлтого, синего, чёрного цвета
+        	for(size_t y = 0; y < rr.rows; y++) {
+        		for(size_t x = 0; x < rr.cols; x++) {
+                    Vec3b pixel = rr.at<Vec3b>(Point(x, y));
+                    // pixel[0] - синяя компонента
+                    // pixel[1] - зелёная компонента
+                    // pixel[2] - красная компонента
 
-            // ***** Пример распознавания знаков направления движения *****
+                    // Для определения чёрного цвета
+                    if ((pixel[0] <= 100 && abs(pixel[0] - pixel[1]) < 25 &&
+                         abs(pixel[0] - pixel[2]) < 25 &&
+                         abs(pixel[2] - pixel[1]) < 25)) black++;
+                    // Для определения красного цвета
+                    if (pixel[2] > (pixel[1] + pixel[0]) * 0.7)
+                        red++;
+        			// Для определения синего цвета
+                    if ((pixel[0] - max(pixel[1], pixel[2])) > 10)
+                        blue++;
+        		}
+        	}
+
+            // Узнаём процентное соотношение цветов
+        	float count = rr.cols * rr.rows;
+            red = (float)red / count * 100;
+        	blue = (float)blue / count * 100;
+        	black = (float)black / count * 100;
+
+            /*
+             * Распознавание знаков
+             */
             // Для определения знака направления движения используется положение стойки стрелки,
             // то есть если стойка стрелки находится слева, то это знак "движение направо" и т.д.
             // Для нахождения положения стойки стрелки используется всего одна строчка пикселей в нижней части знака.
-
-            if (colors.red > 45) {
+            cout << "\rb:" << black << "\tbl:" << blue;
+            cout << "\tr:" << red << "\t";
+            if (red > 40) {
                 cout << "Stop sign." << endl;
                 rectangle(frame(area_sign), boundingarea, Scalar(0, 255, 0), 2);
-            } else if (colors.blue > 60) { // Если более 60% пикселей имеют синий цвет
+            } else if (black > 5 and blue > 40) {
+                cout << "Pedestrian sign." << endl;
+                rectangle(frame(area_sign), boundingarea, Scalar(0, 255, 0), 2);
+            } else if (blue > 60) { // Если более 60% пикселей имеют синий цвет
                 // Рассчитываем положение строчки пикселей для сканирования
                 int scan_row = rr.rows * 0.7,
                 // Количество белых пикселей в строчке
@@ -190,13 +170,13 @@ int main(int argc, char *argv[]) {
                 // Определяем, какой знак направления движения нашли
                 if(light_position >= 0.6) {
                     // Знак движения налево
-                    cout << "Turn left sign." << endl;
+                    cout << "Turn left sign. lp: " << light_position << endl;
                 }else if(light_position >= 0.4) {
                     // Знак движения прямо
-                    cout << "Go forward sign." << endl;
-                }else if(light_position >= 0.1) {
+                    cout << "Go forward sign. lp: " << light_position << endl;
+                }else if(light_position >= 0.0) {
                     // Знак движения направо
-                    cout << "Turn right sign." << endl;
+                    cout << "Turn right sign. lp: " << light_position << endl;
                 }
                 rectangle(frame(area_sign), boundingarea, Scalar(0, 255, 0), 2);
             } else {
@@ -206,5 +186,6 @@ int main(int argc, char *argv[]) {
 
         imshow("frame", frame);
     }
+    cout << endl;
     return 0;
 }
