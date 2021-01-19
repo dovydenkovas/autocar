@@ -1,9 +1,9 @@
 #include <iostream>
 #include <stdlib.h>
-#include "simple_arduino.hpp"
+#include "arduino.hpp"
 
 int main() {
-    Arduino robot;
+    ArduinoCtrl robot;
     // Пробуем подключиться к ардуине.
     // Если подключение успешно - функция возвращает true
     // и выполняется тело условия.
@@ -23,7 +23,7 @@ int main() {
         // робот останавливается
         robot.stop();
         // подключение закрывается
-        robot.close();
+        robot.close_connection();
     }
     return 0;
 }
