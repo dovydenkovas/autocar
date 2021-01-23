@@ -7,15 +7,17 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-//#include <string.h>
-//#include <stdio.h>
 
 
-// Класс ArduinoCtrl реализует "общение" с Arduino
+/**
+ * Класс ArduinoCtrl реализует "общение" с Arduino по COM протоколу
+ * через USB порт
+ */
 class ArduinoCtrl {
 public:
     /**
      * Конструктор класса без подключения к Arduino.
+     * Не делает ничего. Нужен лишь для удобства использования класса.
      */
     ArduinoCtrl();
 
@@ -51,7 +53,6 @@ public:
     *         Note: При |speed| < 27 машинка не едет.
     * angle - угол поворота колес. По-умолчанию angle=0
     *         Допустимые значения: -30 <= angle <= 30.
-    * Робот едет прямо со скоростью 45 см/с.
     */
    void run(int speed, int angle=0);
 
@@ -66,10 +67,6 @@ public:
     * message - сообщение для отправки
     */
    void send_command(std::string message);
-
-   /**
-    * Функция получает информацию с Arduino и возвращает её.
-    */
 
 private:
    // arduino_fd - параметр типа int, сокет для общения с Arduino.

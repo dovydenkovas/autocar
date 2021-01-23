@@ -5,6 +5,7 @@ ArduinoCtrl::ArduinoCtrl()
 {
     /**
      * Конструктор класса без подключения к Arduino.
+     * Не делает ничего. Нужен лишь для удобства использования класса.
      */
 }
 
@@ -47,6 +48,7 @@ bool ArduinoCtrl::connect(std::string port)
  	cfsetispeed(&options, B115200);
  	cfsetospeed(&options, B115200);
 
+    // Устаналиваем параметры для "общения" с Arduino
  	options.c_cflag &= ~PARENB;
  	options.c_cflag &= ~CSTOPB;
  	options.c_cflag &= ~CSIZE;
@@ -60,16 +62,13 @@ bool ArduinoCtrl::connect(std::string port)
  	options.c_cc[VMIN] = 1;
  	options.c_cc[VTIME] = 0;
 
- 	// Устаналиваем параметры для "общения" с Arduino
  	tcsetattr(arduino_fd, TCSANOW, &options);
-
  	tcflush(arduino_fd, TCIOFLUSH);
  	tcflush(arduino_fd, TCIFLUSH);
 
- 	usleep(500000);
+ 	usleep(500000); // Задержка 0,5 секунды
 
  	connection = true;
-
     return connection;
 }
 
@@ -108,7 +107,6 @@ void ArduinoCtrl::run(int speed, int angle)
      *         Note: При |speed| < 27 машинка не едет.
      * angle - угол поворота колес. По-умолчанию angle=0
      *         Допустимые значения: -30 <= angle <= 30.
-     * Робот едет прямо со скоростью 45 см/с.
      */
 
      // Не выполняется если соединение не установлено
@@ -143,10 +141,10 @@ void ArduinoCtrl::stop()
 {
     /**
      * Останавливает машинку.
-     * Обертка для run(0);
+     * Обертка для run(0, 0);
      */
 
-    run(0);
+    run(0, 0);
 }
 
 
@@ -169,10 +167,3 @@ void ArduinoCtrl::send_command(std::string message)
     	ioctl(arduino_fd, TCSBRK, 1);
     }
 }
-
-/*
-int ArduinoCtrl::Read(char* chars, size_t size)
-{
-	return read(arduino_fd, chars, size);
-}
-*/
