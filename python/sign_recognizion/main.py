@@ -8,6 +8,33 @@ def get_mask(image):
     mask = cv.inRange(hsv, (20, 140, 20), (250, 250, 250))
     return mask
 
+def count_colors(frame):
+    blue = 0
+    black = 0
+    red = 0
+    # Считаем количество пикселей красного, жёлтого, синего, чёрного цвета
+    for y in range(len(frame)):
+        for x in range(len(frame[0])):
+            pixel = frame[y, x]
+
+            # Для определения чёрного цвета
+            if ((pixel[0] <= 100 and abs(pixel[0] - pixel[1]) < 25 and
+                 abs(pixel[0] - pixel[2]) < 25 and
+                 abs(pixel[2] - pixel[1]) < 25)):
+                 black += 1
+            # Для определения красного цвета
+            if (pixel[2] > (pixel[1] + pixel[0]) * 0.7):
+                red += 1
+            # Для определения синего цвета
+            if ((pixel[0] - max(pixel[1], pixel[2])) > 10):
+                blue += 1
+    # Узнаём процентное соотношение цветов
+    count = len(frame) * len(frame[0]) * 100
+    red /= count
+    blue /= count
+    black /= count
+
+    return red, blue, black
 
 sign_pd = get_mask(cv.imread("pr.png"))
 sign_stop = get_mask(cv.imread("stop.png"))
@@ -25,10 +52,12 @@ def recognize_sign(frame):
             if mask[y][x].all() == sign_stop[y][x].all():
                 is_stop += 1
 
-    if is_pd > 1900 and is_pd > is_stop + 200:
+    red, blue, black = count_colors(frame)
+
+    if is_pd > 1900 and is_pd > is_stop + 200 and red < 10:
         return f"Pedestrian: {is_pd}"
 
-    elif is_stop > 1900 and is_stop > is_pd + 200:
+    elif is_stop > 1900 and is_stop > is_pd + 200 and red > 40:
         return f"Stop: {is_stop}"
 
     else:
