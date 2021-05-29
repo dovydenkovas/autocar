@@ -3,29 +3,27 @@ import socket
 import struct
 import pickle
 
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect(('10.1.1.1', 8485))
-connection = client_socket.makefile('wb')
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect(('10.1.1.1', 7777))
+connection = sock.makefile('wb')
 
-cam = cv2.VideoCapture(0)
-
-cam.set(3, 320);
-cam.set(4, 240);
-
-img_counter = 0
-
-encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
-
+data = b""
+payload_size = struct.calcsize(">L")
 while True:
-    ret, frame = cam.read()
-    result, frame = cv2.imencode('.jpg', frame, encode_param)
-#    data = zlib.compress(pickle.dumps(frame, 0))
-    data = pickle.dumps(frame, 0)
-    size = len(data)
+    while len(data) < payload_size:
+        print("Recv: {}".format(len(data)))
+        data += sock.recv(1024)
 
+    packed_msg_size = data[:payload_size]
+    data = data[payload_size:]
+    msg_size = struct.unpack(">L", packed_msg_size)[0]
+    while len(data) < msg_size:
+        data += sock.recv(1024)
+    frame_data = data[:msg_size]
+    data = data[msg_size:]
 
-    print("{}: {}".format(img_counter, size))
-    client_socket.sendall(struct.pack(">L", size) + data)
-    img_counter += 1
+    frame=pickle.loads(frame_data, fix_imports=True, encoding="bytes")
+    frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
 
-cam.release()
+    cv2.imshow('VideoCar',frame)
+    cv2.waitKey(1)
