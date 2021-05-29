@@ -1,45 +1,40 @@
-from vidgear.gears import NetGear
+import socket
 import cv2
+import pickle
+import struct
 
-def find_line(frame):
-    """ Ищет черную линию.
-        Принимает кадр.
-        Возвращает координату центра черной линии.
-    """
+HOST=''
+PORT=8485
 
-    left_side = 100  # Координаты левой границы линии
-    right_side = 540  # Координаты правой границы линии
-    scan_row = 470
+s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+print('Socket created')
 
-    for x in range(50, len(frame)-50, 2):
-        if frame[scan_row][x][2] < 40:
-            left_side = x
-            break
+s.bind((HOST,PORT))
+print('Socket bind complete')
+s.listen(10)
+print('Socket now listening')
 
-    for x in range(len(frame)-50, 50, -2):
-        if frame[scan_row][x][2] < 40:
-            right_side = x
-            break
+conn,addr=s.accept()
 
-    return (right_side + left_side) // 2
+data = b""
+payload_size = struct.calcsize(">L")
+print("payload_size: {}".format(payload_size))
+while True:
+    while len(data) < payload_size:
+        print("Recv: {}".format(len(data)))
+        data += conn.recv(4096)
 
+    print("Done Recv: {}".format(len(data)))
+    packed_msg_size = data[:payload_size]
+    data = data[payload_size:]
+    msg_size = struct.unpack(">L", packed_msg_size)[0]
+    print("msg_size: {}".format(msg_size))
+    while len(data) < msg_size:
+        data += conn.recv(4096)
+    frame_data = data[:msg_size]
+    data = data[msg_size:]
 
-cap = cv2.VideoCapture(0)
-server = NetGear()
-
-if cap.isOpened():
-    ret, frame = cap.read()
-    # Пока пользователь нажал кнопку или кадр не считался, выходим из цикла
-    while ret:
-        # Находит координаты черной линии и помечает красной чертой
-        line_x = find_line(frame)
-        cv2.line(frame, (line_x, len(frame)-10), (line_x, len(frame)-50), (0, 0, 255), 3)
-
-        # Выводим кадр в окно "Live"
-        server.send(frame)
-        # Считываем следующий кадр с видео и записываем в frame
-        ret, frame = cap.read()
-
-cap.stop()
-server.close()
-
+    frame=pickle.loads(frame_data, fix_imports=True, encoding="bytes")
+    frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+    cv2.imshow('ImageWindow',frame)
+    cv2.waitKey(1)
