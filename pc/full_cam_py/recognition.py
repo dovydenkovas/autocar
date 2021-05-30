@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-def find_line(frame):
+def find_line(frame, scan_row, old_center=-1):
     """ Ищет черную линию.
         Принимает кадр.
         Возвращает координату центра черной линии.
@@ -10,15 +10,19 @@ def find_line(frame):
 
     left_side = 100  # Координаты левой границы линии
     right_side = 540  # Координаты правой границы линии
-    scan_row = 470
 
-    for x in range(50, len(frame)-50, 2):
-        if frame[scan_row][x][2] < 40:
+    if old_center == -1:
+        old_center = len(frame[0]) // 2
+    left_border = max(int(len(frame[0]) * 0.05), old_center - int(len(frame[0]) * 0.25))
+    right_border = min(int(len(frame[0]) * 0.95), old_center + int(len(frame[0]) * 0.25))
+
+    for x in range(left_border, right_border, 2):
+        if frame[scan_row][x][2] < 60:
             left_side = x
             break
 
-    for x in range(len(frame)-50, 50, -2):
-        if frame[scan_row][x][2] < 40:
+    for x in range(right_border, left_border, -2):
+        if frame[scan_row][x][2] < 60:
             right_side = x
             break
 
