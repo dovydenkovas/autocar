@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+venv
+full_python_project/__pycache__/
+

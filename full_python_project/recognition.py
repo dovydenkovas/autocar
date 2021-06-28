@@ -73,56 +73,61 @@ def recognize_sign(frame):
     """
 
 
+
     # Область в которой ищем дорожный знак.
     area_sign = (400,     # X-координата вехнего левого угла области
                  200,     # Y-координата вехнего левого угла области
-                 240,     # Ширина области интереса в пикселях
-                 120)     # Высота области интереса в пикселях
+                 640,     # Ширина области интереса в пикселях
+                 320)     # Высота области интереса в пикселях
 
     # Создаём копию кадра "frame"
-    gray = frame(area_sign)  # Необходим для обнаружения контуров.
-    area_frame = frame(area_sign)  # Необходим для распознавания знаков среди контуров.
+    gray = frame[area_sign[0]:area_sign[2], area_sign[1]:area_sign[3]]  # Необходим для обнаружения контуров.
+    area_frame = frame[area_sign[0]:area_sign[2], area_sign[1]:area_sign[3]]   # Необходим для распознавания знаков среди контуров.
 
     # Обозначаем область интереса синим прямоугольником
-    cv2.rectangle(frame, area_sign, (255, 0, 0), 2)
+    # cv2.rectangle(frame, area_sign, (255, 0, 0), 2)
 
-    # # Переводим кадр из BGR в оттенки серого
-    # cv2.cvtColor(gray, gray, cv2.COLOR_BGR2GRAY)
-    # # Массив с найденными контурами на изображении
-    # contours = []
-    # # Аппроксимированный (упрощенный) контур
-    # approx = []
-    # # Находим все контуры на изображении
-    # cv2.Canny(gray, gray, 70, 210, 3)
-    # cv2.findContours(gray, contours, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    #
-    # # Проходимся по всем найденным контурам в цикле
-    # for i in range(len(contours)):
-    #     # Аппроксимируем контур до более простой фигуры
-    #     cv2.approxPolyDP(contours[i], approx, 3, True)
-    #
-    #     # Вычисляем площадь контура с помощью функции "contourArea"
-    #     area = cv2.contourArea(contours[i])
-    #     # Игнорируем слишком маленькие контуры
-    #     if area < 480:
-    #         continue
-    #
-    #     # Узнаём, в каком месте кадра находится контур с помощью функции "boundingRect"
-    #     boundingarea = cv2.boundingRect(approx)
-    #
-    #     # Находим соотношение сторон найденного контура
-    #     ratio = boundingarea.width / boundingarea.height
-    #
-    #     # Так как знак квадратный, то и стороны найденного контура должны
-    #     # быть равны примерно равны. Если это не так - пропускаем контур.
-    #     if ratio < 0.8 or ratio > 1.2:
-    #         continue
-    #
-    #     # Подсчет количества цвета
-    #     # Вырезаем из всего кадра область boundingarea
-    #     rr = area_frame(boundingarea)
-    #     colors = count_colors(rr)
-    #
+
+    # Переводим кадр из BGR в оттенки серого
+    gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
+    # Массив с найденными контурами на изображении
+    contours = []
+    # Аппроксимированный (упрощенный) контур
+    approx = []
+    # Находим все контуры на изображении
+    gray = cv2.Canny(gray, 70, 210, 3)
+    contours = cv2.findContours(gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Проходимся по всем найденным контурам в цикле
+    for i in range(len(contours)):
+        # Аппроксимируем контур до более простой фигуры
+        cv2.approxPolyDP(contours[i], [approx], -1, True)
+
+        print(contours[i])
+        # Вычисляем площадь контура с помощью функции "contourArea"
+        area = cv2.contourArea(contours[i])
+        # Игнорируем слишком маленькие контуры
+        if area < 480:
+            continue
+
+        # Узнаём, в каком месте кадра находится контур с помощью функции "boundingRect"
+        boundingarea = cv2.boundingRect(approx)
+
+        # Находим соотношение сторон найденного контура
+        ratio = boundingarea.width / boundingarea.height
+
+        # Так как знак квадратный, то и стороны найденного контура должны
+        # быть равны примерно равны. Если это не так - пропускаем контур.
+        if ratio < 0.8 or ratio > 1.2:
+            continue
+
+        # Подсчет количества цвета
+        # Вырезаем из всего кадра область boundingarea
+        rr = area_frame(boundingarea)
+        colors = count_colors(rr)
+
+    return "STOP", (200, 200), (400, 400)
+
     #     """
     #       Распознавание знаков
     #     """
