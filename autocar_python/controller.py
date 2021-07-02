@@ -8,8 +8,15 @@
 
 """
 
+import time
+import datetime
+
+def get_time():
+    return datetime.datetime.now().strftime("[%H:%M:%S]")
 
 def mainloop(control_queue, errors_queue):
     print("Контроллер запустился")
+
     while True:
-        pass
+        control_queue.put(f"{get_time()} Hello\n")
+        time.sleep(4)

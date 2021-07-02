@@ -7,6 +7,7 @@
 """
 
 import socket
+import pickle
 import time
 
 
@@ -22,7 +23,17 @@ def mainloop(control_queue, frames_queue):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     server.settimeout(0.2)
 
-    message = b"your very important message"
+    data = {'frame': [],
+            'logs': ''
+            }
+
+
     while True:
+        if not frames_queue.empty():
+            data['frame'] = [1,2,3] #frames_queue.get()
+
+        data['logs'] = control_queue.get() if not control_queue.empty() else ""
+
+        message = pickle.dumps(data)
         server.sendto(message, ('<broadcast>', 7777))
         time.sleep(1)

@@ -49,17 +49,17 @@ def mainloop(errors_queue, frames_queue):
     old_x = -1
     n_rows = 10
 
-    while True:
+    while ret:
+        # Находит координаты черной линии и помечает чертой
+        for i in range(n_rows):
+            line_x1 += find_line(frame, line_y1+i, old_x)
+            line_x2 += find_line(frame, line_y2+i, old_x)
+
+        line_x1 //= n_rows + 1
+        line_x2 //= n_rows + 1
+
+        cv.line(frame, (line_x1, line_y1), (line_x2, line_y2), (250, 120, 120), 3)
+        old_x = line_x1
+
+        frames_queue.put(frame)
         ret, frame = capture.read()
-
-        if ret and False:
-            # Находит координаты черной линии и помечает чертой
-            for i in range(n_rows):
-                line_x1 += find_line(frame, line_y1+i, old_x)
-                line_x2 += find_line(frame, line_y2+i, old_x)
-
-            line_x1 //= n_rows + 1
-            line_x2 //= n_rows + 1
-
-            cv.line(frame, (line_x1, line_y1), (line_x2, line_y2), (250, 120, 120), 3)
-            old_x = line_x1

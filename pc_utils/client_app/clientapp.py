@@ -12,6 +12,7 @@ class Ui(QtWidgets.QMainWindow):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.serve_connection)
         self.timer.start(100)
+        self.n_after_log_checked = 0
 
         self.is_connected = False
         self.is_running = False
@@ -30,6 +31,7 @@ class Ui(QtWidgets.QMainWindow):
             self.is_connected = messaging.connect()
             if self.is_connected:
                 self.button.setText("Остановить машинку")
+                self.logs.setPlainText('')
             else:
                 QtWidgets.QMessageBox.information(self,
                                         "Что-то пошло не так",
@@ -37,12 +39,14 @@ class Ui(QtWidgets.QMainWindow):
                                          QtWidgets.QMessageBox.Ok)
 
 
-
     def serve_connection(self):
         if self.is_connected:
             # frame = messaging.get_frame()
-            self.logs.setText(self.logs.text() + messaging.get_logs())
-
+            if self.n_after_log_checked > 10:
+                self.logs.setPlainText(self.logs.toPlainText() + messaging.get_logs())
+                self.n_after_log_checked = 0
+            else:
+                self.n_after_log_checked += 1
 
         self.frame_widget.setPixmap(self.frame)
         self.timer.start(100)
