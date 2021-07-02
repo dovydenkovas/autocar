@@ -32,5 +32,4 @@
 *.app
 
 venv
-full_python_project/__pycache__/
-
+*__pycache__
