@@ -9,10 +9,11 @@
 """
 
 import time
-import datetime
 import serial
 import arduino
 import threading
+
+from logtools import log, command, send
 
 
 is_running = False
@@ -26,21 +27,23 @@ ki = 0.2
 kd = 0.2
 
 
-def get_time():
-    return datetime.datetime.now().strftime("[%H:%M:%S]")
-
-
 def manual_control(control_queue, logs_queue):
+    global kp, ki, kd, speed, is_running
     while True:
         if not control_queue.empty():
             message = control_queue.get()
             if message['command'] == 'start':
                 is_running = True
-                logs_queue.put(f"{get_time()} Поехали!\n")
+                logs_queue.put(log("Поехали!"))
             elif message['command'] == 'stop':
                 is_running = False
-                logs_queue.put(f"{get_time()} Стою!\n")
-        time.sleep(0.01)
+                logs_queue.put(log("Стою!"))
+            elif message['command'] == 'set':
+                kp, ki, kd, speed = message['args']
+                logs_queue.put(log(f'Установлены новые значения коэфициантов: {kp=}, {ki=}, {kd=}, {speed=}'))
+            elif message['command'] == 'get':
+                logs_queue.put(send('(app) Значения прилетели', {'command':'get', 'kp':kp, 'ki':ki, 'kd':kd, 'speed':speed}))
+        time.sleep(0.02)
 
 
 def mainloop(control_queue, errors_queue, logs_queue):
@@ -55,7 +58,7 @@ def mainloop(control_queue, errors_queue, logs_queue):
     while not robot.isOpened():
         robot = arduino.Arduino()
         if n % 20 == 0:
-            logs_queue.put(f"{get_time()} Ищу ардуинку\n")
+            logs_queue.put(log('Ищу ардуинку'))
             n = 0
         n += 1
         time.sleep(0.05)
@@ -70,7 +73,7 @@ def mainloop(control_queue, errors_queue, logs_queue):
         if not control_queue.empty():
             is_running = control_queue.get()
         # Сообщает текущее состояние
-        logs_queue.put(f"{get_time()} I am {'runnig' if is_running else 'waiting'}\n")
+        #logs_queue.put(log(f"I am {'runnig' if is_running else 'waiting'}"))
 
         if not is_running:
             robot.run(0, 0)

@@ -8,7 +8,7 @@ import struct
 
 class Messager:
     def __init__(self):
-        self.message = {'logs': ''}
+        self.message = {'logs': '', 'info': ''}
         self.frame = None
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)

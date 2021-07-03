@@ -1,5 +1,6 @@
 from PyQt5 import QtWidgets, uic, QtCore, QtGui, Qt
 import sys
+import time
 
 import messaging
 
@@ -34,12 +35,16 @@ class Ui(QtWidgets.QMainWindow):
                       ]
             self.messager.send({'command': 'set', 'args': values})
 
-
-
-
     def load_settings(self):
+        # FIXME: Тут баг. Иногда крашит приложение или пакеты не долетают.
         if self.is_connected:
             self.messager.send({'command': 'get'})
+            time.sleep(0.5)
+            if self.messager.message['info'] != '':
+                self.input_kp.setValue(self.messager.message['info']['kp'])
+                self.input_ki.setValue(self.messager.message['info']['ki'])
+                self.input_kd.setValue(self.messager.message['info']['kd'])
+                self.input_speed.setValue(self.messager.message['info']['speed'])
 
     def press_button(self):
         if self.is_connected:
@@ -72,8 +77,10 @@ class Ui(QtWidgets.QMainWindow):
                 self.logs.setPlainText(self.logs.toPlainText() + self.messager.get_logs())
                 self.logs.verticalScrollBar().setValue(self.logs.verticalScrollBar().maximum());
             else:
+                pos = self.logs.verticalScrollBar().value()
                 self.logs.setPlainText(self.logs.toPlainText() + self.messager.get_logs())
-                
+                self.logs.verticalScrollBar().setValue(pos)
+
         if self.messager.frame is not None:
             height, width, channel = self.messager.frame.shape
             bytesPerLine = 3 * width

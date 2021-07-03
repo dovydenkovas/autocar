@@ -51,15 +51,16 @@ def mainloop(control_queue, frames_queue, logs_queue):
 
     video_server = NetGear()
 
-    data = {'logs': ''
+    data = {'logs': '',  # Выводятся как логи
+            'info': ''   # Обрабатываются програмно
             }
 
 
     while True:
         if not logs_queue.empty():
-             data['logs'] = logs_queue.get()
-             message = pickle.dumps(data)
-             server.sendto(message, ('<broadcast>', 7777))
+            data = logs_queue.get()
+            message = pickle.dumps(data)
+            server.sendto(message, ('<broadcast>', 7777))
 
         try:
             if not frames_queue.empty():
