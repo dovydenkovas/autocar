@@ -9,6 +9,10 @@
 import socket
 import pickle
 import time
+import cv2
+
+from vidgear.gears import VideoGear, CamGear
+from vidgear.gears import NetGear
 
 
 def mainloop(control_queue, frames_queue):
@@ -23,17 +27,31 @@ def mainloop(control_queue, frames_queue):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     server.settimeout(0.2)
 
-    data = {'frame': [],
-            'logs': ''
+    stream = CamGear(0).start()
+    video_server = NetGear()
+
+    data = {'logs': ''
             }
 
 
     while True:
-        if not frames_queue.empty():
-            data['frame'] = [1,2,3] #frames_queue.get()
+        # if not frames_queue.empty():
+        #     data['frame'] = [1,2,3] #frames_queue.get()
 
         data['logs'] = control_queue.get() if not control_queue.empty() else ""
 
         message = pickle.dumps(data)
         server.sendto(message, ('<broadcast>', 7777))
-        time.sleep(1)
+
+        try:
+            frame = stream.read()
+            frame = cv2.resize(frame, (frame.shape[1]//2, frame.shape[0]//2))
+            if frame is None:
+                break
+            video_server.send(frame)
+
+        except KeyboardInterrupt:
+            stream.stop()
+            break
+
+        time.sleep(0.05)
