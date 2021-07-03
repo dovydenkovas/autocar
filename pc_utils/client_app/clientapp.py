@@ -9,6 +9,8 @@ class Ui(QtWidgets.QMainWindow):
         super(Ui, self).__init__()
         uic.loadUi('resources/form.ui', self)
         self.button.clicked.connect(self.press_button)
+        self.save_button.clicked.connect(self.save_settings)
+        self.load_button.clicked.connect(self.load_settings)
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.serve_connection)
         self.timer.start(100)
@@ -25,31 +27,53 @@ class Ui(QtWidgets.QMainWindow):
     def paintEvent(self, event):
         self.frame_widget.setPixmap(self.frame.scaledToWidth(self.frame_widget.width() ));
 
+    def save_settings(self):
+        if self.is_connected:
+            values = [self.input_kp.value(), self.input_ki.value(),
+                      self.input_kd.value(), self.input_speed.value()
+                      ]
+            self.messager.send({'command': 'set', 'args': values})
+
+
+
+
+    def load_settings(self):
+        if self.is_connected:
+            self.messager.send({'command': 'get'})
 
     def press_button(self):
         if self.is_connected:
             if self.is_running:
-                self.is_running = self.messager .send("start")
+                self.is_running = self.messager.send({'command': 'start'})
                 self.button.setText("Остановить машинку")
             else:
-                self.is_running = not self.messager .send("end")
+                self.is_running = not self.messager.send({'command': 'stop'})
                 self.button.setText("Запустить машинку")
         else:
             self.is_connected = self.messager.connect()
             if self.is_connected:
                 self.button.setText("Остановить машинку")
                 self.logs.setPlainText('')
+                self.messager.send({'command': 'start_video'})
             else:
                 QtWidgets.QMessageBox.warning(self,
                                         "Что-то пошло не так",
                                         "Подключение не удалось",
                                          QtWidgets.QMessageBox.Ok)
 
+    def closeEvent(self, event):
+        if self.is_connected:
+            self.messager.send({'command': 'stop_video'})
+
 
     def serve_connection(self):
         if self.is_connected:
-            self.logs.setPlainText(self.logs.toPlainText() + self.messager .get_logs())
-
+            if self.logs.verticalScrollBar().value() == self.logs.verticalScrollBar().maximum():
+                self.logs.setPlainText(self.logs.toPlainText() + self.messager.get_logs())
+                self.logs.verticalScrollBar().setValue(self.logs.verticalScrollBar().maximum());
+            else:
+                self.logs.setPlainText(self.logs.toPlainText() + self.messager.get_logs())
+                
         if self.messager.frame is not None:
             height, width, channel = self.messager.frame.shape
             bytesPerLine = 3 * width

@@ -14,6 +14,7 @@ class Messager:
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.client.bind(("", 7777))
+        self.server_addr = None
         self.data = b''
 
     def get_frame(self):
@@ -25,14 +26,14 @@ class Messager:
         return message
 
     def send(self, message):
-        pass
-    #__client.sendto(message.encode(), ('<broadcast>', 7777))
+        self.client.sendto(pickle.dumps(message), self.server_addr)
 
 
     def connect(self):
         data, addr = self.client.recvfrom(1024)
         if len(data) > 0:
             self.data = data
+            self.server_addr = addr
             log_thread = threading.Thread(target=self.log_mainloop, daemon=True)
             log_thread.start()
             video_thread = threading.Thread(target=self.video_mainloop, daemon=True)

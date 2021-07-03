@@ -37,7 +37,7 @@ def find_line(frame, scan_row, old_center=-1):
     return (right_side + left_side) // 2
 
 
-def mainloop(errors_queue, frames_queue):
+def mainloop(errors_queue, frames_queue, logs_queue):
     print("Анализатор дороги запустился")
     capture = cv.VideoCapture(0)
     ret, frame = capture.read()
