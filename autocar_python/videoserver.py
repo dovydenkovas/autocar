@@ -27,7 +27,6 @@ def mainloop(control_queue, frames_queue):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     server.settimeout(0.2)
 
-    stream = CamGear(0).start()
     video_server = NetGear()
 
     data = {'logs': ''
@@ -35,23 +34,22 @@ def mainloop(control_queue, frames_queue):
 
 
     while True:
-        # if not frames_queue.empty():
-        #     data['frame'] = [1,2,3] #frames_queue.get()
-
-        data['logs'] = control_queue.get() if not control_queue.empty() else ""
-
-        message = pickle.dumps(data)
-        server.sendto(message, ('<broadcast>', 7777))
+        if not control_queue.empty():
+             data['logs'] = control_queue.get()
+             message = pickle.dumps(data)
+             server.sendto(message, ('<broadcast>', 7777))
 
         try:
-            frame = stream.read()
-            frame = cv2.resize(frame, (frame.shape[1]//2, frame.shape[0]//2))
-            if frame is None:
-                break
-            video_server.send(frame)
-
+            if not frames_queue.empty():
+                frame = frames_queue.get()
+                if frame is not None:
+                    #frame = cv2.resize(frame, (frame.shape[1]//2, frame.shape[0]//2))
+                    video_server.send(frame)
+        except RuntimeError:
+            video_server = NetGear()
         except KeyboardInterrupt:
-            stream.stop()
             break
+        except Exception as e:
+            print(f"Ошибка видеосервера: {e}")
 
-        time.sleep(0.05)
+        time.sleep(0.01)

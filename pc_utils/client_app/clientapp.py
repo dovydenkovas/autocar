@@ -48,12 +48,7 @@ class Ui(QtWidgets.QMainWindow):
 
     def serve_connection(self):
         if self.is_connected:
-            # frame = self.messager .get_frame()
-            if self.n_after_log_checked > 10:
-                self.logs.setPlainText(self.logs.toPlainText() + self.messager .get_logs())
-                self.n_after_log_checked = 0
-            else:
-                self.n_after_log_checked += 1
+            self.logs.setPlainText(self.logs.toPlainText() + self.messager .get_logs())
 
         if self.messager.frame is not None:
             height, width, channel = self.messager.frame.shape
