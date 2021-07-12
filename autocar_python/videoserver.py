@@ -17,15 +17,17 @@ from vidgear.gears import NetGear
 
 
 is_streamig = False
-
+ip = ''
 
 def feedback_mainloop(server, control_queue):
-    global is_streamig
+    global is_streamig, ip
     while True:
         data, addr = server.recvfrom(1024)
         if len(data) > 0:
+             ip = addr[0]
              message = pickle.loads(data)
              if message['command'] == "start_video":
+                 #ip = message['ip']
                  is_streamig = True
              elif message['command'] == "stop_video":
                  is_streamig = False
@@ -38,6 +40,7 @@ def mainloop(control_queue, frames_queue, logs_queue):
         TODO: Это тестовый вариант
 
     """
+    global ip, is_streamig
     print("Видео сервер запустился")
 
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -49,12 +52,11 @@ def mainloop(control_queue, frames_queue, logs_queue):
     thread.start()
 
 
-    video_server = NetGear()
-
     data = {'logs': '',  # Выводятся как логи
             'info': ''   # Обрабатываются програмно
             }
 
+    video_server = NetGear()
 
     while True:
         if not logs_queue.empty():
@@ -66,8 +68,13 @@ def mainloop(control_queue, frames_queue, logs_queue):
             if not frames_queue.empty():
                 frame = frames_queue.get()
                 if frame is not None and is_streamig:
-                    #frame = cv2.resize(frame, (frame.shape[1]//2, frame.shape[0]//2))
-                    video_server.send(frame)
+                    if is_streamig and ip:
+                        video_server = NetGear(address=ip)
+                        print(ip)
+                        ip = ''
+                    else:
+                        #frame = cv2.resize(frame, (frame.shape[1]//2, frame.shape[0]//2))
+                        video_server.send(frame)
         except RuntimeError:
             video_server = NetGear()
         except KeyboardInterrupt:
