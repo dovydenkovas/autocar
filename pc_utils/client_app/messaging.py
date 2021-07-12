@@ -5,6 +5,12 @@ import time
 import struct
 #import cv2
 
+def get_network_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.connect(('<broadcast>', 0))
+    return s.getsockname()[0]
+
 
 class Messager:
     def __init__(self):
@@ -16,6 +22,8 @@ class Messager:
         self.client.bind(("", 7777))
         self.server_addr = None
         self.data = b''
+        self.local_ip = get_network_ip()
+
 
     def get_frame(self):
         return self.message['frame']
@@ -50,7 +58,7 @@ class Messager:
 
     def video_mainloop(self):
         from vidgear.gears import NetGear
-        video_client = NetGear(receive_mode = True)
+        video_client = NetGear(receive_mode=True, address=self.local_ip)
         while True:
             frame = video_client.recv()
             if frame is not None:

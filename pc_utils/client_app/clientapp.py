@@ -59,7 +59,7 @@ class Ui(QtWidgets.QMainWindow):
             if self.is_connected:
                 self.button.setText("Остановить машинку")
                 self.logs.setPlainText('')
-                self.messager.send({'command': 'start_video'})
+                self.messager.send({'command': 'start_video', 'ip': self.messager.local_ip})
             else:
                 QtWidgets.QMessageBox.warning(self,
                                         "Что-то пошло не так",
