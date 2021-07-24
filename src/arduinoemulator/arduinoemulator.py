@@ -16,7 +16,7 @@ class ArduinoEmulator(object):
               'PTY,link=%s,raw,echo=0' % self.client_port
             ]
 
-        self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+        self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
         time.sleep(1)
         self.serial = serial.Serial(self.device_port, 9600, rtscts=True, dsrdtr=True)
@@ -27,7 +27,7 @@ class ArduinoEmulator(object):
         self.serial.write(out)
 
     def read(self):
-        line = ''
+        line = b''
         while self.serial.inWaiting() > 0:
             line += self.serial.read(1)
         return line
@@ -45,4 +45,3 @@ class ArduinoEmulator(object):
 
 arduino = ArduinoEmulator()
 arduino.mainloop()
-
