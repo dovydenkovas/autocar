@@ -11,9 +11,7 @@ class Arduino:
             self.serial = None
 
     def isOpened(self):
-        if self.serial != None:
-            return self.serial.is_open
-        return False
+        return self.serial != None
 
     def run(self, speed, angle=90):
         direction = 0 if speed >= 0 else 1
