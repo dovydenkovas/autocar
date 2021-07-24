@@ -33,6 +33,7 @@ class Messager:
         self.is_running = False  # Движется ли машинка
         self.autocar_status = 0  # Информация о текущес состоянии соединения/машинки
         self.autocar_error = 0  # Степень отклонения машинки от линии
+        self.sending_messages = [] # Сообщения для отправки на машинку
 
 
     def get_frame(self):
@@ -46,8 +47,16 @@ class Messager:
         return ''
 
     def send(self, message):
-        self.client.sendto(pickle.dumps(message), self.server_addr)
+        self.sending_messages.append(message)
 
+    def _send(self):
+        while True:
+            if len(self.sending_messages) > 0:
+                print(self.sending_messages)
+                message = self.sending_messages.pop(0)
+                self.client.sendto(pickle.dumps(message), self.server_addr)
+
+            time.sleep(0.02)
 
     def connect(self):
         log_thread = threading.Thread(target=self.log_mainloop, daemon=True)
@@ -67,6 +76,9 @@ class Messager:
         video_thread = threading.Thread(target=self.video_mainloop, daemon=True)
         video_thread.start()
 
+        send_thread = threading.Thread(target=self._send, daemon=True)
+        send_thread.start()
+
         self.send(('hi',))
         self.send(('get',))
 
@@ -76,9 +88,12 @@ class Messager:
                  self.message = pickle.loads(self.data)
                  if self.message[0] == 'log':
                      self.logs = self.message[1]
+                     print(self.logs)
                  elif self.message[0] == 'arg':
                      self.autocar_status, self.autocar_error, *_ = self.message[1:]
+                     self.is_running = self.autocar_status == 1
                  elif self.message[0] == 'var':
+                     print(self.message)
                      self.params = self.message[1:]
             self.data, addr = self.client.recvfrom(1024)
         time.sleep(0.05)

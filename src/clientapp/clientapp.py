@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets, uic, QtCore, QtGui, Qt
 import sys
 import time
 import os
+import threading
 
 import messaging
 
@@ -13,13 +14,16 @@ class Ui(QtWidgets.QMainWindow):
         self.button.clicked.connect(self.press_button)
         self.save_button.clicked.connect(self.save_settings)
         self.load_button.clicked.connect(self.load_settings)
+
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.serve_connection)
         self.timer.start(100)
+
+
         self.n_after_log_checked = 0
         self.messager = messaging.Messager()
-        self.is_running = False
         self.frame = QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/resources/background.jpg")
+        self.waiting_settings = False
         self.show()
 
     def paintEvent(self, event):
@@ -36,20 +40,15 @@ class Ui(QtWidgets.QMainWindow):
         # FIXME: Тут баг. Иногда крашит приложение или пакеты не долетают.
         if self.messager.is_connected:
             self.messager.send(('get',))
-            time.sleep(0.4)
+            self.waiting_settings = True
 
-            kp, ki, kd, speed = self.messager.params
-            self.input_kp.setValue(kp)
-            self.input_ki.setValue(ki)
-            self.input_kd.setValue(kd)
-            self.input_speed.setValue(speed)
 
     def press_button(self):
         if self.messager.is_connected:
-            if self.is_running:
-                self.messager.send(('start',))
-            else:
+            if self.messager.is_running:
                 self.messager.send(('stop',))
+            else:
+                self.messager.send(('start',))
         else:
             # Попытка подключения
             self.messager.connect()
@@ -85,9 +84,17 @@ class Ui(QtWidgets.QMainWindow):
             self.frame =  QtGui.QPixmap(QtGui.QImage(self.messager.frame.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888).rgbSwapped())
             self.frame_widget.setPixmap(self.frame)
 
+        if self.waiting_settings:
+            kp, ki, kd, speed = self.messager.params
+            self.input_kp.setValue(kp)
+            self.input_ki.setValue(ki)
+            self.input_kd.setValue(kd)
+            self.input_speed.setValue(speed)
+            self.waiting_settings = False
+
         self.status_lbl.setText(messaging.STATUS[self.messager.autocar_status])
         self.error_lbl.setText(str(self.messager.autocar_error))
-        self.timer.start(100)
+        #self.timer.start(100)
 
 
 app = QtWidgets.QApplication(sys.argv)

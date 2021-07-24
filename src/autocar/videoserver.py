@@ -18,6 +18,7 @@ from vidgear.gears import NetGear
 
 is_streamig = False
 ip = ''
+old_ip = 'old ip'
 
 def feedback_mainloop(server, control_queue):
     global is_streamig, ip
@@ -35,11 +36,9 @@ def feedback_mainloop(server, control_queue):
 
 
 def mainloop(control_queue, frames_queue, logs_queue):
-    """ Отправляет картинку и состояние машинки (broadcast, port 7777)
-        TODO: Это тестовый вариант
+    """ Отправляет картинку и состояние машинки (broadcast, port 7777)  """
 
-    """
-    global ip, is_streamig
+    global ip, is_streamig, old_ip
     print("Видео сервер запустился")
 
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -64,9 +63,10 @@ def mainloop(control_queue, frames_queue, logs_queue):
             if not frames_queue.empty():
                 frame = frames_queue.get()
                 if frame is not None and is_streamig:
-                    if is_streamig and ip:
+                    if is_streamig and ip and ip != old_ip:
                         video_server = NetGear(address=ip)
                         print('Connected to', ip)
+                        old_ip = ip
                         ip = ''
                     else:
                         video_server.send(frame)

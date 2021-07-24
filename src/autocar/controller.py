@@ -26,6 +26,10 @@ kp = 0.5
 ki = 0.2
 kd = 0.2
 
+# Ошибка управления
+error = 0
+old_error = 0
+
 # STATUS = ["Нет соединения", "Еду", "Стою", "Ищу Ардуинку"]
 
 def manual_control(control_queue, logs_queue):
@@ -47,12 +51,22 @@ def manual_control(control_queue, logs_queue):
         time.sleep(0.02)
 
 
+def send_stat(logs_queue):
+    global is_running, error
+    while True:
+        logs_queue.put(arg((1 if is_running else 2), error))
+        time.sleep(0.05)
+
+
 def mainloop(control_queue, errors_queue, logs_queue):
-    global is_running, speed, kp, kd, ki
+    global is_running, speed, kp, kd, ki, error, old_error
     print("Контроллер запустился")
 
     manual_control_thread = threading.Thread(target=manual_control, daemon=True, args=(control_queue, logs_queue))
     manual_control_thread.start()
+
+    send_stat_thread = threading.Thread(target=send_stat, daemon=True, args=(logs_queue,))
+    send_stat_thread.start()
 
     robot = arduino.Arduino()
     logs_queue.put(arg(3, 0)) # Ищу ардуинку
@@ -61,24 +75,14 @@ def mainloop(control_queue, errors_queue, logs_queue):
         time.sleep(0.1)
 
     dt = 0.005
-    # Ошибка управления
-    error = 0
-    old_error = 0
+
     i = 0
 
     while True:
-        # Есть ли команды управления от пользователя?
-        if not control_queue.empty():
-            is_running = control_queue.get()
-        # Сообщает текущее состояние
-        logs_queue.put(arg(1 if is_running else 2, error))
+        if not errors_queue.empty():
+            error = errors_queue.get()
 
-        if not is_running:
-            robot.run(0, 0)
-        else:
-            if not errors_queue.empty():
-                error = errors_queue.get()
-
+        if is_running:
             # ПИД регулятор
             p = kp * error
             i = i + ki * error * dt
@@ -88,3 +92,6 @@ def mainloop(control_queue, errors_queue, logs_queue):
             u = p + i + d
             robot.run(speed, 90 + u)
             time.sleep(dt)
+            
+        else:
+            robot.run(0, 90)
