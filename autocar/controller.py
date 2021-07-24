@@ -13,7 +13,7 @@ import serial
 import arduino
 import threading
 
-from logtools import log, command, send
+from logtools import *
 
 
 is_running = False
@@ -26,23 +26,24 @@ kp = 0.5
 ki = 0.2
 kd = 0.2
 
+# STATUS = ["Нет соединения", "Еду", "Стою", "Ищу Ардуинку"]
 
 def manual_control(control_queue, logs_queue):
     global kp, ki, kd, speed, is_running
     while True:
         if not control_queue.empty():
             message = control_queue.get()
-            if message['command'] == 'start':
+            if message[0] == 'start':
                 is_running = True
-                logs_queue.put(log("Поехали!"))
-            elif message['command'] == 'stop':
+                logs_queue.put(log('Еду'))
+            elif message[0] == 'stop':
                 is_running = False
-                logs_queue.put(log("Стою!"))
-            elif message['command'] == 'set':
-                kp, ki, kd, speed = message['args']
+                logs_queue.put(log('Стою'))
+            elif message[0] == 'set':
+                kp, ki, kd, speed, *_ = message[1:]
                 logs_queue.put(log(f'Установлены новые значения коэфициантов: {kp=}, {ki=}, {kd=}, {speed=}'))
-            elif message['command'] == 'get':
-                logs_queue.put(send('(app) Значения прилетели', {'command':'get', 'kp':kp, 'ki':ki, 'kd':kd, 'speed':speed}))
+            elif message[0] == 'get':
+                logs_queue.put(var(kp, ki, kd, speed))
         time.sleep(0.02)
 
 
@@ -54,14 +55,10 @@ def mainloop(control_queue, errors_queue, logs_queue):
     manual_control_thread.start()
 
     robot = arduino.Arduino()
-    n = 20
+    logs_queue.put(arg(3, 0)) # Ищу ардуинку
     while not robot.isOpened():
         robot = arduino.Arduino()
-        if n % 20 == 0:
-            logs_queue.put(log('Ищу ардуинку'))
-            n = 0
-        n += 1
-        time.sleep(0.05)
+        time.sleep(0.1)
 
     dt = 0.005
     # Ошибка управления
@@ -73,7 +70,7 @@ def mainloop(control_queue, errors_queue, logs_queue):
         if not control_queue.empty():
             is_running = control_queue.get()
         # Сообщает текущее состояние
-        #logs_queue.put(log(f"I am {'runnig' if is_running else 'waiting'}"))
+        logs_queue.put(arg(1 if is_running else 2, error))
 
         if not is_running:
             robot.run(0, 0)

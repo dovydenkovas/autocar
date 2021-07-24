@@ -26,10 +26,9 @@ def feedback_mainloop(server, control_queue):
         if len(data) > 0:
              ip = addr[0]
              message = pickle.loads(data)
-             if message['command'] == "start_video":
-                 #ip = message['ip']
+             if message[0] == "hi":
                  is_streamig = True
-             elif message['command'] == "stop_video":
+             elif message[0] == "buy":
                  is_streamig = False
              else:
                  control_queue.put(message)
@@ -52,10 +51,7 @@ def mainloop(control_queue, frames_queue, logs_queue):
     thread.start()
 
 
-    data = {'logs': '',  # Выводятся как логи
-            'info': ''   # Обрабатываются програмно
-            }
-
+    data = None
     video_server = NetGear()
 
     while True:
@@ -70,10 +66,9 @@ def mainloop(control_queue, frames_queue, logs_queue):
                 if frame is not None and is_streamig:
                     if is_streamig and ip:
                         video_server = NetGear(address=ip)
-                        print(ip)
+                        print('Connected to', ip)
                         ip = ''
                     else:
-                        #frame = cv2.resize(frame, (frame.shape[1]//2, frame.shape[0]//2))
                         video_server.send(frame)
         except RuntimeError:
             video_server = NetGear()

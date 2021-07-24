@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, uic, QtCore, QtGui, Qt
 import sys
 import time
+import os
 
 import messaging
 
@@ -8,7 +9,7 @@ import messaging
 class Ui(QtWidgets.QMainWindow):
     def __init__(self):
         super(Ui, self).__init__()
-        uic.loadUi('resources/form.ui', self)
+        uic.loadUi(os.path.dirname(os.path.realpath(__file__)) + '/resources/form.ui', self)
         self.button.clicked.connect(self.press_button)
         self.save_button.clicked.connect(self.save_settings)
         self.load_button.clicked.connect(self.load_settings)
@@ -17,63 +18,60 @@ class Ui(QtWidgets.QMainWindow):
         self.timer.start(100)
         self.n_after_log_checked = 0
         self.messager = messaging.Messager()
-
-
-        self.is_connected = False
         self.is_running = False
-        self.frame = QtGui.QPixmap("resources/background.jpg")
-
+        self.frame = QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/resources/background.jpg")
         self.show()
 
     def paintEvent(self, event):
         self.frame_widget.setPixmap(self.frame.scaledToWidth(self.frame_widget.width() ));
 
     def save_settings(self):
-        if self.is_connected:
+        if self.messager.is_connected:
             values = [self.input_kp.value(), self.input_ki.value(),
                       self.input_kd.value(), self.input_speed.value()
                       ]
-            self.messager.send({'command': 'set', 'args': values})
+            self.messager.send(('set', *values))
 
     def load_settings(self):
         # FIXME: Тут баг. Иногда крашит приложение или пакеты не долетают.
-        if self.is_connected:
-            self.messager.send({'command': 'get'})
-            time.sleep(0.5)
-            if self.messager.message['info'] != '':
-                self.input_kp.setValue(self.messager.message['info']['kp'])
-                self.input_ki.setValue(self.messager.message['info']['ki'])
-                self.input_kd.setValue(self.messager.message['info']['kd'])
-                self.input_speed.setValue(self.messager.message['info']['speed'])
+        if self.messager.is_connected:
+            self.messager.send(('get',))
+            time.sleep(0.4)
+
+            kp, ki, kd, speed = self.messager.params
+            self.input_kp.setValue(kp)
+            self.input_ki.setValue(ki)
+            self.input_kd.setValue(kd)
+            self.input_speed.setValue(speed)
 
     def press_button(self):
-        if self.is_connected:
+        if self.messager.is_connected:
             if self.is_running:
-                self.is_running = self.messager.send({'command': 'start'})
-                self.button.setText("Остановить машинку")
+                self.messager.send(('start',))
             else:
-                self.is_running = not self.messager.send({'command': 'stop'})
-                self.button.setText("Запустить машинку")
+                self.messager.send(('stop',))
         else:
-            self.is_connected = self.messager.connect()
-            if self.is_connected:
-                self.button.setText("Остановить машинку")
-                self.logs.setPlainText('')
-                self.messager.send({'command': 'start_video', 'ip': self.messager.local_ip})
-            else:
-                QtWidgets.QMessageBox.warning(self,
-                                        "Что-то пошло не так",
-                                        "Подключение не удалось",
-                                         QtWidgets.QMessageBox.Ok)
+            # Попытка подключения
+            self.messager.connect()
+            self.button.setText("Подключаюсь...")
+            #self.logs.setPlainText('')
+
 
     def closeEvent(self, event):
-        if self.is_connected:
-            self.messager.send({'command': 'stop_video'})
+        if self.messager.is_connected:
+            self.messager.send(('buy',))
 
 
     def serve_connection(self):
-        if self.is_connected:
-            if self.logs.verticalScrollBar().value() == self.logs.verticalScrollBar().maximum():
+        if self.messager.is_connected:
+            if self.messager.is_running:
+                self.button.setText("Остановить машинку")
+            else:
+                self.button.setText("Запустить машинку")
+
+            self.ip_lbl.setText(self.messager.server_addr[0])
+
+            if self.is_show_last.isChecked():
                 self.logs.setPlainText(self.logs.toPlainText() + self.messager.get_logs())
                 self.logs.verticalScrollBar().setValue(self.logs.verticalScrollBar().maximum());
             else:
@@ -85,8 +83,10 @@ class Ui(QtWidgets.QMainWindow):
             height, width, channel = self.messager.frame.shape
             bytesPerLine = 3 * width
             self.frame =  QtGui.QPixmap(QtGui.QImage(self.messager.frame.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888).rgbSwapped())
-            # self.frame = self.messager.frame
-        self.frame_widget.setPixmap(self.frame)
+            self.frame_widget.setPixmap(self.frame)
+
+        self.status_lbl.setText(messaging.STATUS[self.messager.autocar_status])
+        self.error_lbl.setText(str(self.messager.autocar_error))
         self.timer.start(100)
 
 
