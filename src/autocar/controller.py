@@ -64,6 +64,7 @@ def mainloop(control_queue, errors_queue, logs_queue):
     # Ошибка управления
     error = 0
     old_error = 0
+    i = 0
 
     while True:
         # Есть ли команды управления от пользователя?
@@ -86,4 +87,4 @@ def mainloop(control_queue, errors_queue, logs_queue):
 
             u = p + i + d
             robot.run(speed, 90 + u)
-            sleep(dt)
+            time.sleep(dt)
