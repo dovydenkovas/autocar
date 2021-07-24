@@ -41,7 +41,7 @@ class ArduinoEmulator(object):
 
     def mainloop(self):
         while True:
-            print(self.read())
+            self.read()
 
 arduino = ArduinoEmulator()
 arduino.mainloop()

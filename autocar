@@ -1,0 +1,10 @@
+#!/bin/bash 
+
+if [[ $1 == "virt" ]]
+then
+	echo "Start virtual arduino"
+	venv/bin/python src/arduinoemulator &
+fi
+
+venv/bin/python src/autocar
+exit 0
