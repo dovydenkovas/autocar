@@ -6,6 +6,7 @@
 """
 
 
+import time
 import cv2 as cv
 
 
@@ -66,3 +67,4 @@ def mainloop(errors_queue, frames_queue, logs_queue):
 
         frames_queue.put(frame)
         ret, frame = capture.read()
+        time.sleep(0.025)

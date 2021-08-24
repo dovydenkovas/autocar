@@ -25,14 +25,15 @@ def feedback_mainloop(server, control_queue):
     while True:
         data, addr = server.recvfrom(1024)
         if len(data) > 0:
-             ip = addr[0]
-             message = pickle.loads(data)
-             if message[0] == "hi":
-                 is_streamig = True
-             elif message[0] == "buy":
-                 is_streamig = False
-             else:
-                 control_queue.put(message)
+            ip = addr[0]
+            message = pickle.loads(data)
+            if message[0] == "hi":
+                is_streamig = True
+            elif message[0] == "buy":
+                is_streamig = False
+            else:
+                control_queue.put(message)
+        time.sleep(0.15)
 
 
 def mainloop(control_queue, frames_queue, logs_queue):
@@ -77,4 +78,4 @@ def mainloop(control_queue, frames_queue, logs_queue):
         except Exception as e:
             print(f"Ошибка видеосервера: {e}")
 
-        time.sleep(0.01)
+        time.sleep(0.02)

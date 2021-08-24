@@ -1,20 +1,29 @@
+""" Реализует сетевое взаимодействие с машинкой. """
+
 import threading
 import socket
 import pickle
 import time
-import struct
-#import cv2
+from collections import deque
+
 
 def get_network_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    s.connect(('<broadcast>', 0))
-    return s.getsockname()[0]
+    """ Возвращает локалььный ip адрес в виде строки. """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.connect(('<broadcast>', 0))
+    return sock.getsockname()[0]
 
 
 STATUS = ["Нет соединения", "Еду", "Стою", "Ищу Ардуинку"]
 
+
 class Messager:
+    """
+        Содержит методы для коммуникации с
+        машинкой и информацию, полученную с ней.
+    """
+
     def __init__(self):
         self.message = None
         self.logs = ''
@@ -22,8 +31,6 @@ class Messager:
 
         self.frame = None
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        # (Dont Work in Windows):
-        # self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.client.bind(("", 7777))
         self.server_addr = None
@@ -33,37 +40,49 @@ class Messager:
         self.is_running = False  # Движется ли машинка
         self.autocar_status = 0  # Информация о текущес состоянии соединения/машинки
         self.autocar_error = 0  # Степень отклонения машинки от линии
-        self.sending_messages = [] # Сообщения для отправки на машинку
-
+        self.sending_messages = deque() # Сообщения для отправки на машинку
 
     def get_frame(self):
         return self.frame
 
     def get_logs(self):
         if len(self.logs) > 0:
-            _ = self.logs + '\n'
+            result = self.logs + '\n'
             self.logs = ''
-            return _
+            return result
         return ''
 
     def send(self, message):
+        """ Добавляет сообщение в очередь на отправку. """
         self.sending_messages.append(message)
 
     def _send(self):
+        """ Отправляет сообщения из очереди на машинку. """
         while True:
             if len(self.sending_messages) > 0:
-                print(self.sending_messages)
-                message = self.sending_messages.pop(0)
+                message = self.sending_messages.popleft()
                 self.client.sendto(pickle.dumps(message), self.server_addr)
+            time.sleep(0.25)
 
-            time.sleep(0.02)
+    def send_quickly(self, message):
+        """ Отправляет сообщение на машинку минуя очередь сообщений.
+            ВНИМАНИЕ: рекомендуется испольщовать только
+                      для отправки сообщений на завершение.
+        """
+        self.client.sendto(pickle.dumps(message), self.server_addr)
 
-    def connect(self):
+    def open(self):
+        """ Открывает соединение с машинкой. """
         log_thread = threading.Thread(target=self.log_mainloop, daemon=True)
         log_thread.start()
         return False
 
     def log_mainloop(self):
+        """ В случае успешного подключения создает потоки приема
+            видео с машики и передачи команд на машинку, после чего
+            в цикле принимает входящую информацию.
+        """
+
         data, addr = self.client.recvfrom(1024)
         if len(data) <= 0:
             # Connection failed
@@ -85,24 +104,28 @@ class Messager:
         # Log mainloop
         while True:
             if len(self.data) > 0:
-                 self.message = pickle.loads(self.data)
-                 if self.message[0] == 'log':
-                     self.logs = self.message[1]
-                     print(self.logs)
-                 elif self.message[0] == 'arg':
-                     self.autocar_status, self.autocar_error, *_ = self.message[1:]
-                     self.is_running = self.autocar_status == 1
-                 elif self.message[0] == 'var':
-                     print(self.message)
-                     self.params = self.message[1:]
+                self.message = pickle.loads(self.data)
+                if self.message[0] == 'log':
+                    self.logs = self.message[1]
+                elif self.message[0] == 'arg':
+                    self.autocar_status, self.autocar_error, *_ = self.message[1:]
+                    self.is_running = self.autocar_status == 1
+                elif self.message[0] == 'var':
+                    self.params = self.message[1:]
             self.data, addr = self.client.recvfrom(1024)
-        time.sleep(0.05)
+        time.sleep(0.15)
 
 
     def video_mainloop(self):
+        """ Принимет изображение с машинки и сохраняет его в self.frame. """
         from vidgear.gears import NetGear
         video_client = NetGear(receive_mode=True, address=self.local_ip)
         while True:
             frame = video_client.recv()
             if frame is not None:
                 self.frame = frame
+
+    def close(self):
+        """ Завершает соединение с машинкой. """
+        if self.is_connected:
+            self.send_quickly(('buy',))

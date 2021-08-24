@@ -45,17 +45,17 @@ def manual_control(control_queue, logs_queue):
                 logs_queue.put(log('Стою'))
             elif message[0] == 'set':
                 kp, ki, kd, speed, *_ = message[1:]
-                logs_queue.put(log(f'Установлены новые значения коэфициантов: {kp=}, {ki=}, {kd=}, {speed=}'))
+                logs_queue.put(log(f'Установлены новые значения коэфициантов: kp={kp}, ki={ki}, kd={kd}, speed={speed}'))
             elif message[0] == 'get':
                 logs_queue.put(var(kp, ki, kd, speed))
-        time.sleep(0.02)
+        time.sleep(0.2)
 
 
 def send_stat(logs_queue):
     global is_running, error
     while True:
         logs_queue.put(arg((1 if is_running else 2), error))
-        time.sleep(0.05)
+        time.sleep(0.2)
 
 
 def mainloop(control_queue, errors_queue, logs_queue):
@@ -72,9 +72,9 @@ def mainloop(control_queue, errors_queue, logs_queue):
     logs_queue.put(arg(3, 0)) # Ищу ардуинку
     while not robot.isOpened():
         robot = arduino.Arduino()
-        time.sleep(0.1)
+        time.sleep(0.25)
 
-    dt = 0.005
+    dt = 0.025
 
     i = 0
 
@@ -91,7 +91,8 @@ def mainloop(control_queue, errors_queue, logs_queue):
 
             u = p + i + d
             robot.run(speed, 90 + u)
-            time.sleep(dt)
-            
+
         else:
             robot.run(0, 90)
+
+        time.sleep(dt)
