@@ -77,6 +77,9 @@
 #define DIR_PIN               5
 // Пин, к которому подключён сервопривод
 #define SERVO_PIN             9
+
+
+#if defined(IS_INDICATORS)
 // Пин, к которому подключены светодиоды передних фар
 #define HEAD_LIGH_PIN         A0
 // Пин, к которому подключён левый поворотник
@@ -87,6 +90,8 @@
 #define STOP_INDICATOR_PIN    A3
 // Пин, к которому подключены светодиоды габаритов
 #define REAR_LIGHT_PIN        A4
+#endif
+
 
 // Тип отправляемой информации на одноплатник
 enum DataInfo {
