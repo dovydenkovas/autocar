@@ -146,7 +146,7 @@ python-dateutil==2.8.2
 python3-xlib==0.15
 PyTweening==1.0.3
 pyvenv==0.2.2
-PyYAML==5.3.1
+PyYAML==5.4
 pyzmq==22.2.1
 qimage2ndarray==1.8.3
 QtPy==1.9.0
